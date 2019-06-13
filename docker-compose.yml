@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+  nodeexporter:
+    image: prom/node-exporter:v0.18.1
+    restart: unless-stopped
+    labels:
+      - "traefik.docker.network=web"
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:nodeexporter.${HOST}"
+      - "traefik.frontend.auth.basic=${BASIC_AUTH_USER}:${BASIC_AUTH_HASHED_PASSWORD}"
+      - "traefik.port=9100"
+      - "traefik.protocol=http"
+    networks:
+      - web
+      - default
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+
+  cadvisor:
+    image: google/cadvisor:latest
+    restart: unless-stopped
+    labels:
+      - "traefik.docker.network=web"
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:cadvisor.${HOST}"
+      - "traefik.frontend.auth.basic=${BASIC_AUTH_USER}:${BASIC_AUTH_HASHED_PASSWORD}"
+      - "traefik.port=8080"
+      - "traefik.protocol=http"
+    networks:
+      - web
+      - default
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+networks:
+  web:
+    external: true
